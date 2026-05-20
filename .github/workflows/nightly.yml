@@ -27,6 +27,7 @@ jobs:
     outputs:
       models: ${{ steps.find.outputs.models }}
       dt_version: ${{ steps.dt.outputs.version }}
+      dt_prefix: ${{ steps.dt.outputs.prefix }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -54,7 +55,12 @@ jobs:
         name: Derive nightly version from our own release-* tags
         run: |
           VERSION=$(./tools/get_git_version_string.sh)
+          # X.Y.Z prefix only — drops +N~gXXX commit suffix and the
+          # 4th revision component if present. used as the nightly tag
+          # so darktable's release-discovery code can match it
+          PREFIX=$(echo "$VERSION" | sed 's/[+~].*//' | awk -F. '{printf "%s.%s.%s", $1, $2, $3}')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
 
   build:
     needs: discover
@@ -124,24 +130,28 @@ jobs:
         with:
           path: artifacts
 
-      # force-move the 'nightly' tag to the current commit so the release
-      # date on GitHub reflects when the build ran, not when the tag was
-      # first created. matches darktable's own nightly workflow.
-      - name: Force-move 'nightly' tag
+      # delete any existing nightly-* tags (local + remote) and re-create
+      # the current one at HEAD. one rolling nightly tag at a time;
+      # versioned name (e.g. nightly-5.5.0) so darktable's release-
+      # discovery code parses it as a valid version
+      - name: Force-move nightly tag
         env:
           GH_TOKEN: ${{ github.token }}
+          NIGHTLY_TAG: nightly-${{ needs.discover.outputs.dt_prefix }}
         run: |
-          git tag -d nightly || true
-          git push origin --delete nightly || true
-          git tag nightly
-          git push origin nightly
+          for old in $(git ls-remote --tags origin 'nightly-*' \
+                       | awk '{print $2}' | sed 's|refs/tags/||'); do
+            git push origin --delete "$old" || true
+          done
+          git tag "$NIGHTLY_TAG"
+          git push origin "$NIGHTLY_TAG"
 
       - name: Publish nightly release
         uses: ncipollo/release-action@v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag: nightly
+          tag: nightly-${{ needs.discover.outputs.dt_prefix }}
           name: "nightly models ${{ needs.discover.outputs.dt_version }}"
           prerelease: true
           allowUpdates: true     # roll the same pre-release each run
@@ -151,7 +161,7 @@ jobs:
           # silently replace the rolling nightly with mismatched bytes
           draft: ${{ startsWith(github.ref, 'refs/tags/') }}
           body: |
-            This is a nightly build of darktable AI models, tracking the `master` branch of `darktable-ai`. It targets the current development version of darktable (`${{ needs.discover.outputs.dt_version }}`) and is rebuilt automatically whenever a model definition changes.
+            This is a nightly build of darktable AI models, tracking the `master` branch of `darktable-ai`. It targets the current development version of darktable ${{ needs.discover.outputs.dt_prefix }} and is rebuilt automatically whenever a model definition changes.
 
             You can use these if you want to try new or updated models without waiting for an official release. New checkpoints, format changes and packaging tweaks all land here first. The trade-off is the usual one – things move faster, things break more often, and behaviour can change between runs. **Use with caution.**
 
