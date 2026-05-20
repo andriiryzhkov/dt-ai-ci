@@ -1,4 +1,4 @@
-We're pleased to announce the first release of the darktable AI models, 5.6.0!
+We're pleased to announce the first release of the darktable AI models, 6.0.0!
 
 The github release is here: [https://github.com/darktable-org/darktable-ai/releases/tag/release-5.6.0](https://github.com/darktable-org/darktable-ai/releases/tag/release-5.6.0).
 
