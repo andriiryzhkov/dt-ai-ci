@@ -28,6 +28,7 @@ jobs:
       models: ${{ steps.find.outputs.models }}
       dt_version: ${{ steps.dt.outputs.version }}
       dt_prefix: ${{ steps.dt.outputs.prefix }}
+      is_dev: ${{ steps.dt.outputs.is_dev }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -59,12 +60,23 @@ jobs:
           # 4th revision component if present. used as the nightly tag
           # so darktable's release-discovery code can match it
           PREFIX=$(echo "$VERSION" | sed 's/[+~].*//' | awk -F. '{printf "%s.%s.%s", $1, $2, $3}')
+          # only build nightly on dev cycles (odd minor: 5.5.x heading
+          # to 5.6.0, 5.7.x heading to 5.8.0, ...). even-minor prefixes
+          # mean master is on a stable line (no dev anchor tagged yet,
+          # or running off a hotfix branch); skip publish
+          MINOR=$(echo "$PREFIX" | awk -F. '{print $2}')
+          IS_DEV=false
+          case "$MINOR" in
+            1|3|5|7|9) IS_DEV=true ;;
+          esac
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
+          echo "is_dev=$IS_DEV" >> "$GITHUB_OUTPUT"
+          echo "::notice::nightly version $PREFIX (is_dev=$IS_DEV)"
 
   build:
     needs: discover
-    if: github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch'
+    if: needs.discover.outputs.is_dev == 'true' && (github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -107,9 +119,10 @@ jobs:
 
   publish:
     needs: [discover, build]
-    # require every matrix member to succeed — a broken model blocks the
-    # nightly publish rather than silently shipping a missing artifact
-    if: ${{ !cancelled() && needs.build.result == 'success' && (github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch') }}
+    # require dev cycle (odd minor) + every matrix member to succeed —
+    # a broken model blocks the nightly publish rather than silently
+    # shipping a missing artifact
+    if: ${{ !cancelled() && needs.discover.outputs.is_dev == 'true' && needs.build.result == 'success' && (github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
