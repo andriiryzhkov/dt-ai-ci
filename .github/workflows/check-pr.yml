@@ -2,7 +2,7 @@ name: Check Models PR
 
 on:
   pull_request:
-    branches: [master, 'models-*.x']
+    branches: [master, main, 'models-*.x']
   workflow_dispatch:
 
 # only one check at a time per PR — a new push cancels the previous

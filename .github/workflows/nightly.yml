@@ -2,7 +2,7 @@ name: Nightly Models
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
     paths:
       - 'models/**'
       - '.github/workflows/nightly.yml'
