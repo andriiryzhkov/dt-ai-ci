@@ -18,7 +18,7 @@ jobs:
     # only run automatically on the upstream repo; on forks, the workflow
     # is opt-in via the Actions UI ("Run workflow") so test merges don't
     # generate stray releases
-    if: github.repository == 'darktable-org/darktable-ai' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       models: ${{ steps.find.outputs.models }}

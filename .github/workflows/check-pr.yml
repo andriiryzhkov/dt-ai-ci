@@ -18,7 +18,7 @@ jobs:
   discover:
     # only run automatically on the upstream repo; on forks, opt in via
     # the Actions UI for test runs
-    if: github.repository == 'darktable-org/darktable-ai' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       models: ${{ steps.find.outputs.models }}
