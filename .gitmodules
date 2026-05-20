@@ -1,0 +1,15 @@
+[submodule "vendor/NAFNet"]
+	path = vendor/NAFNet
+	url = https://github.com/megvii-research/NAFNet.git
+[submodule "vendor/nind-denoise"]
+	path = vendor/nind-denoise
+	url = https://github.com/trougnouf/nind-denoise.git
+[submodule "vendor/SegNext"]
+	path = vendor/SegNext
+	url = https://github.com/uncbiag/SegNext.git
+[submodule "vendor/sam2"]
+	path = vendor/sam2
+	url = https://github.com/facebookresearch/sam2.git
+[submodule "vendor/rawnind_jddc"]
+	path = vendor/rawnind_jddc
+	url = https://github.com/trougnouf/rawnind_jddc

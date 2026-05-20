@@ -1,0 +1,56 @@
+id: upscale-bsrgan
+name: "upscale bsrgan"
+description: "BSRGAN 2x and 4x blind super-resolution"
+task: upscale
+version: "0.1"
+backend: onnx
+tiling: true
+type: multi
+dep_group: bsrgan
+
+attributes:
+  # per-model tile size: x2 can use a larger input since output is only 2x,
+  # x4 stays smaller because output is 4x the input dimension
+  model_x2:
+    input_sizes: [512]
+  model_x4:
+    input_sizes: [256]
+
+model_card:
+  long_description: "BSRGAN blind image super-resolution using practical degradation model; includes both 2x and 4x upscaling variants with RRDBNet architecture"
+  scope: "image upscaling (2x and 4x blind super-resolution)"
+  author: "Kai Zhang (ETH Zurich)"
+  source: "https://github.com/cszn/BSRGAN"
+  paper: "https://arxiv.org/abs/2103.14006"
+  license: "Apache-2.0"
+  training_data: "DIV2K, Flickr2K, WED, OST – standard SR research datasets with synthetic practical degradation"
+  training_data_license: "DIV2K: CC0; Flickr2K, WED, OST: no explicit open-source licenses"
+  notes: "training datasets Flickr2K/WED/OST do not have explicit open-source licenses"
+
+checkpoints:
+  - url: "https://github.com/cszn/KAIR/releases/download/v1.0/BSRGAN.pth"
+    path: "temp/upscale-bsrgan/BSRGAN.pth"
+  - url: "https://github.com/cszn/KAIR/releases/download/v1.0/BSRGANx2.pth"
+    path: "temp/upscale-bsrgan/BSRGANx2.pth"
+
+convert:
+  - script: convert.py
+    args:
+      checkpoint: "{temp}/BSRGAN.pth"
+      output: "{output}/model_x4.onnx"
+      scale: 4
+      opset: 20
+      height: 256
+      width: 256
+      static: true
+      fp16: false
+  - script: convert.py
+    args:
+      checkpoint: "{temp}/BSRGANx2.pth"
+      output: "{output}/model_x2.onnx"
+      scale: 2
+      opset: 20
+      height: 512
+      width: 512
+      static: true
+      fp16: false

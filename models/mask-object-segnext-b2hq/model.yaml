@@ -1,0 +1,33 @@
+id: mask-object-segnext-b2hq
+name: "mask segnext vitb-sax2 hq"
+description: "SegNext ViT-B SAx2 HQ fine-tuned for interactive masking"
+task: mask
+version: "0.1"
+arch: segnext
+type: split
+dep_group: segnext
+
+model_card:
+  long_description: "SegNext with ViT-B backbone and SAx2 cross-attention, fine-tuned on HQSeg-44K for high-quality mask boundaries in semantic segmentation"
+  scope: "semantic object segmentation"
+  author: "UNC Chapel Hill / SysCV"
+  source: "https://github.com/uncbiag/SegNext"
+  paper: "https://arxiv.org/abs/2312.01171"
+  license: "MIT"
+  training_data: "COCO (118K images) + LVIS (100K images) + HQSeg-44K (44K images, fine-tune)"
+  training_data_license: "COCO: CC BY 4.0; LVIS: CC BY 4.0; HQSeg-44K: mixed (see datasets)"
+  notes: "HQSeg-44K aggregates multiple datasets with varying licenses; individual dataset terms apply"
+
+repo:
+  submodule: vendor/SegNext
+
+checkpoints:
+  - url: "gdrive://1qkXIvxnlY3Z4xLYGWJcoAHBUNyDmvwPS"
+    path: "temp/mask-object-segnext-b2hq/vitb_sa2_cocolvis_hq44k_epoch_0.pth"
+
+convert:
+  - script: convert.py
+    args:
+      checkpoint: "{temp}/vitb_sa2_cocolvis_hq44k_epoch_0.pth"
+      output_dir: "{output}"
+      opset: 20

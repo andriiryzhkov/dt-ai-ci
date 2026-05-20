@@ -1,0 +1,34 @@
+id: mask-object-sam21-tiny
+name: "mask sam2.1 hiera tiny"
+description: "Segment Anything 2.1 (Hiera Tiny) for interactive masking"
+task: mask
+version: "0.1"
+arch: sam2
+type: split
+dep_group: sam21
+
+model_card:
+  long_description: "Segment Anything Model 2.1 with Hiera Tiny encoder for interactive object segmentation"
+  scope: "interactive object segmentation"
+  author: "Meta (Facebook Research)"
+  source: "https://github.com/facebookresearch/sam2"
+  paper: "https://arxiv.org/abs/2408.00714"
+  license: "Apache-2.0"
+  training_data: "SA-V (50.9K videos) + SA-1B (11M stock images)"
+  training_data_license: "SA-V: CC BY 4.0; SA-1B: custom Meta research-only license"
+  notes: "model weights are Apache-2.0; SA-1B training data has a separate research-only license from Meta"
+
+repo:
+  submodule: vendor/sam2
+
+checkpoints:
+  - url: "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_tiny.pt"
+    path: "temp/mask-object-sam21-tiny/sam2.1_hiera_tiny.pt"
+
+convert:
+  - script: ../mask-object-sam21-small/convert.py
+    args:
+      model_cfg: "configs/sam2.1/sam2.1_hiera_t.yaml"
+      checkpoint: "{temp}/sam2.1_hiera_tiny.pt"
+      output_dir: "{output}"
+      opset: 20

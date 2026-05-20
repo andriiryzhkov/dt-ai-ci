@@ -1,0 +1,42 @@
+id: denoise-nind
+name: "denoise nind"
+description: "UNet denoiser trained on NIND dataset"
+task: denoise
+version: "0.2"
+backend: onnx
+tiling: true
+type: single
+dep_group: nind
+coreml_format: mlprogram
+
+attributes:
+  input_sizes: [768]
+
+repo:
+  submodule: vendor/nind-denoise
+
+checkpoints:
+  - url: "https://github.com/trougnouf/nind-denoise/raw/master/models/nind_denoise/2019-08-03T16:14_nn_train.py_--g_network_UNet_--weight_SSIM_1_--batch_size_65_--test_reserve_ursulines-red_stefantiek_ursulines-building_MuseeL-Bobo_CourtineDeVillersDebris_MuseeL-Bobo-C500D_--train_data_datasets-train-NIND_128_96_--g_model_path_models-20/generator_280.pt"
+    path: "temp/denoise-nind/generator_280.pt"
+
+model_card:
+  long_description: "Image denoiser trained on the Natural Image Noise Dataset (NIND) from Wikimedia Commons"
+  scope: "single-image denoising"
+  author: "Benoit Brummer (UCLouvain)"
+  source: "https://github.com/trougnouf/nind-denoise"
+  paper: "https://arxiv.org/abs/1906.00270"
+  license: "GPL-3.0"
+  training_data: "real-world noise/clean pairs photographed by authors, published on Wikimedia Commons"
+  training_data_license: "CC BY 4.0 / CC0 (per-image, Wikimedia Commons)"
+  notes: "all components publicly available under open licenses"
+
+convert:
+  - script: convert.py
+    args:
+      checkpoint: "{temp}/generator_280.pt"
+      output: "{output}/model.onnx"
+      opset: 20
+      height: 768
+      width: 768
+      static: true
+      fp16: false

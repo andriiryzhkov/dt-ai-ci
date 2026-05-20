@@ -1,0 +1,133 @@
+name: Release Models
+
+on:
+  push:
+    tags:
+      # only even-minor tags are real releases (5.6.0, 5.8.0, ...). odd
+      # minors (5.5.0, 5.7.0, ...) are dev anchors used by git describe
+      # for the nightly version label — they must not fire this workflow
+      - 'release-[0-9]+.[02468].[0-9]+'
+      - 'release-[0-9]+.[02468].[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    # only run automatically on the upstream repo; on forks, the workflow
+    # is opt-in via the Actions UI ("Run workflow") so test merges don't
+    # generate stray releases
+    if: github.repository == 'darktable-org/darktable-ai' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      models: ${{ steps.find.outputs.models }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - id: find
+        name: Discover models
+        run: |
+          models=$(uv run dtai list --json-output)
+          echo "models=$models" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: discover
+    if: github.repository == 'darktable-org/darktable-ai' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.discover.outputs.models) }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --group ${{ matrix.dep_group }}
+
+      - name: Download checkpoints
+        run: uv run dtai setup ${{ matrix.id }}
+
+      - name: Convert to ONNX
+        run: uv run dtai convert ${{ matrix.id }}
+
+      - name: Validate output
+        run: uv run dtai validate ${{ matrix.id }}
+
+      - name: Package model
+        run: uv run dtai package ${{ matrix.id }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.id }}
+          path: output/${{ matrix.id }}.dtmodel
+
+  publish:
+    needs: build
+    # require a release-* tag AND every matrix member to succeed —
+    # dispatch from a branch is a no-op so test runs can be triggered
+    # from the Actions UI without creating tags; a broken model blocks
+    # the release rather than shipping an incomplete artifact set
+    if: ${{ !cancelled() && needs.build.result == 'success' && startsWith(github.ref, 'refs/tags/release-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Generate versions.json
+        run: uv run dtai versions
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Resolve version from tag
+        id: ver
+        run: |
+          VERSION="${GITHUB_REF_NAME#release-}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release
+        uses: ncipollo/release-action@v1.21.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag: ${{ github.ref_name }}
+          name: "release ${{ steps.ver.outputs.version }}"
+          bodyFile: RELEASE_NOTES.md
+          # start as draft so maintainer can review artifacts and notes
+          # before flipping the release public
+          draft: true
+          artifacts: |
+            artifacts/*/*.dtmodel
+            output/versions.json

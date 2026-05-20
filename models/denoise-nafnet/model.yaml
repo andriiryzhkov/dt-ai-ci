@@ -1,0 +1,45 @@
+id: denoise-nafnet
+name: "denoise nafnet small"
+description: "NAFNet denoiser trained on SIDD dataset"
+task: denoise
+version: "0.2"
+arch: nafnet
+backend: onnx
+tiling: true
+type: single
+dep_group: nafnet
+coreml_format: mlprogram
+
+attributes:
+  input_sizes: [768]
+  shadow_boost: true
+
+model_card:
+  long_description: "NAFNet (Nonlinear Activation Free Network) lightweight denoiser trained on the SIDD smartphone denoising dataset"
+  scope: "single-image denoising"
+  author: "Megvii Research"
+  source: "https://github.com/megvii-research/NAFNet"
+  paper: "https://arxiv.org/abs/2204.04676"
+  license: "MIT"
+  training_data: "SIDD – 30K real smartphone noisy/clean pairs captured by authors (5 devices)"
+  training_data_license: "MIT"
+  notes: "all components publicly available under permissive licenses"
+
+repo:
+  submodule: vendor/NAFNet
+
+checkpoints:
+  - url: "https://drive.google.com/file/d/1lsByk21Xw-6aW7epCwOQxvm6HYCQZPHZ/view?usp=sharing"
+    path: "temp/denoise-nafnet/NAFNet-SIDD-width32.pth"
+
+convert:
+  - script: convert.py
+    args:
+      config: "{repo}/options/test/SIDD/NAFNet-width32.yml"
+      checkpoint: "{temp}/NAFNet-SIDD-width32.pth"
+      output: "{output}/model.onnx"
+      opset: 20
+      height: 768
+      width: 768
+      static: true
+      fp16: false

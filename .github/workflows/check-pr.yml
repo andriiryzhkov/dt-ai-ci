@@ -1,0 +1,85 @@
+name: Check Models PR
+
+on:
+  pull_request:
+    branches: [master, 'models-*.x']
+  workflow_dispatch:
+
+# only one check at a time per PR — a new push cancels the previous
+# run on the same PR. different PRs run independently
+concurrency:
+  group: check-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    # only run automatically on the upstream repo; on forks, opt in via
+    # the Actions UI for test runs
+    if: github.repository == 'darktable-org/darktable-ai' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      models: ${{ steps.find.outputs.models }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Generate versions.json
+        run: uv run dtai versions
+
+      - id: find
+        name: Discover non-skipped models
+        run: |
+          models=$(uv run dtai list --json-output)
+          echo "models=$models" >> "$GITHUB_OUTPUT"
+          echo "Will check: $models"
+
+  check:
+    needs: discover
+    if: ${{ needs.discover.outputs.models != '[]' && (github.repository == 'darktable-org/darktable-ai' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.discover.outputs.models) }}
+    name: ${{ matrix.id }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --group ${{ matrix.dep_group }}
+
+      - name: Download checkpoints
+        run: uv run dtai setup ${{ matrix.id }}
+
+      - name: Convert to ONNX
+        run: uv run dtai convert ${{ matrix.id }}
+
+      - name: Validate output
+        run: uv run dtai validate ${{ matrix.id }}
+
+      - name: Run demo
+        run: uv run dtai demo ${{ matrix.id }}

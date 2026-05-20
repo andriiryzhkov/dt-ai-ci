@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+uv.lock
+dist/
+build/
+
+# Virtual environments
+.venv/
+.Python
+
+# AI model weights and archives
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
+*.h5
+*.pb
+*.tflite
+*.mlmodel
+*.sav
+*.joblib
+*.pickle
+*.pkl
+*.zip
+*.tar.gz
+*.tar
+*.tar.bz2
+*.tar.xz
+
+# Project build artifacts
+output/
+temp/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Testing / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Ruff / mypy
+.ruff_cache/
+.mypy_cache/
