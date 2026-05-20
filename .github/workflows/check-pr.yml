@@ -2,7 +2,7 @@ name: Check Models PR
 
 on:
   pull_request:
-    branches: [master, main, 'models-*.x']
+    branches: [main, 'models-*.x']
   workflow_dispatch:
 
 # only one check at a time per PR — a new push cancels the previous
@@ -48,7 +48,7 @@ jobs:
 
   check:
     needs: discover
-    if: ${{ needs.discover.outputs.models != '[]' && (github.repository == 'darktable-org/darktable-ai' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ needs.discover.outputs.models != '[]' && (github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

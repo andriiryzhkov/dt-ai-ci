@@ -44,7 +44,7 @@ jobs:
 
   build:
     needs: discover
-    if: github.repository == 'darktable-org/darktable-ai' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
