@@ -1,4 +1,5 @@
 name: Nightly Models
+run-name: Nightly Models 
 
 on:
   push:
@@ -143,18 +144,32 @@ jobs:
         with:
           path: artifacts
 
-      # remove the previous nightly release (and its tag) so the new
-      # one is created fresh at HEAD. one rolling nightly-* release at
-      # a time, with a versioned name (e.g. nightly-5.5.0) so
-      # darktable's release-discovery code parses it as a valid version
-      - name: Remove previous nightly release
+      # delete nightly-* releases for OTHER versions (cross-version
+      # cleanup when master moves from 5.5.x dev to 5.7.x dev)
+      - name: Remove stale nightly releases
         env:
           GH_TOKEN: ${{ github.token }}
+          NIGHTLY_TAG: nightly-${{ needs.discover.outputs.dt_prefix }}
         run: |
           for old in $(gh release list --json tagName \
                          -q '.[].tagName' | grep '^nightly-' || true); do
-            gh release delete "$old" --yes --cleanup-tag
+            if [ "$old" != "$NIGHTLY_TAG" ]; then
+              gh release delete "$old" --yes --cleanup-tag
+            fi
           done
+
+      # force-move the current nightly-X.Y.Z tag to HEAD so the release
+      # page's commit / date reflects when this build ran. matches DT's
+      # nightly workflow; release is updated in place (allowUpdates) so
+      # the URL stays stable across runs within the same dev cycle
+      - name: Force move nightly tag
+        env:
+          NIGHTLY_TAG: nightly-${{ needs.discover.outputs.dt_prefix }}
+        run: |
+          git tag -d "$NIGHTLY_TAG" 2>/dev/null || true
+          git push origin --delete "$NIGHTLY_TAG" 2>/dev/null || true
+          git tag "$NIGHTLY_TAG"
+          git push origin "$NIGHTLY_TAG"
 
       - name: Publish nightly release
         uses: ncipollo/release-action@v1.21.0
@@ -162,10 +177,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag: nightly-${{ needs.discover.outputs.dt_prefix }}
-          commit: ${{ github.sha }}
           name: "nightly models ${{ needs.discover.outputs.dt_version }}"
           prerelease: true
-          removeArtifacts: true  # belt-and-suspenders; release is fresh
+          allowUpdates: true     # roll the same pre-release each run
+          removeArtifacts: true  # wipe stale .dtmodel assets before uploading
           # if this workflow is ever dispatched manually from a tag (via
           # the Actions UI), hide the result as a draft so it doesn't
           # silently replace the rolling nightly with mismatched bytes

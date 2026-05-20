@@ -1,4 +1,5 @@
 name: Release Models
+run-name: Release Models ${{ github.ref_name }}
 
 on:
   push:
