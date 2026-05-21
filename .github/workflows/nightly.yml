@@ -31,7 +31,7 @@ jobs:
       dt_prefix: ${{ steps.dt.outputs.prefix }}
       is_dev: ${{ steps.dt.outputs.is_dev }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
           # full history + tags so git describe can resolve the latest
@@ -84,7 +84,7 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.discover.outputs.models) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -112,7 +112,7 @@ jobs:
       - name: Package model
         run: uv run dtai package ${{ matrix.id }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.id }}
           path: output/${{ matrix.id }}.dtmodel
@@ -126,7 +126,7 @@ jobs:
     if: ${{ !cancelled() && needs.discover.outputs.is_dev == 'true' && needs.build.result == 'success' && (github.repository == 'andriiryzhkov/dt-ai-ci' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: astral-sh/setup-uv@v8.1.0
         with:
@@ -140,7 +140,7 @@ jobs:
       - name: Generate versions.json
         run: uv run dtai versions
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
 
