@@ -157,14 +157,9 @@ jobs:
             gh release delete "$old" --yes --cleanup-tag
           done
 
-      # recreate the nightly-X.Y.Z tag at HEAD. release was just deleted
-      # above, so the next publish step will create a brand-new release
-      - name: Create nightly tag
-        env:
-          NIGHTLY_TAG: nightly-${{ needs.discover.outputs.dt_prefix }}
-        run: |
-          git tag "$NIGHTLY_TAG"
-          git push origin "$NIGHTLY_TAG"
+      # recreate the nightly-X.Y.Z tag at HEAD. release + tag were wiped
+      # by cleanup-tag above; the delete guards here keep this step safe
+      # if it ever runs against a pre-existing tag (manual re-run, etc.)
       - name: Force move nightly tag
         env:
           NIGHTLY_TAG: nightly-${{ needs.discover.outputs.dt_prefix }}
