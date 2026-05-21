@@ -174,13 +174,20 @@ jobs:
           git tag "$NIGHTLY_TAG"
           git push origin "$NIGHTLY_TAG"
 
+      # build date used as the release title — matches DT's nightly style,
+      # so users can tell at a glance how fresh the artifacts are. version
+      # info still ships in the body for the darktable in-app version check
+      - name: Get build date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+
       - name: Publish nightly release
         uses: ncipollo/release-action@v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag: nightly-${{ needs.discover.outputs.dt_prefix }}
-          name: "nightly models ${{ needs.discover.outputs.dt_version }}"
+          name: "nightly models build ${{ steps.date.outputs.date }}"
           prerelease: true
           allowUpdates: true     # roll the same pre-release each run
           removeArtifacts: true  # wipe stale .dtmodel assets before uploading
@@ -189,7 +196,9 @@ jobs:
           # silently replace the rolling nightly with mismatched bytes
           draft: ${{ startsWith(github.ref, 'refs/tags/') }}
           body: |
-            This is a nightly build of darktable AI models, tracking the `master` branch of `darktable-ai`. It targets the current development version of darktable ${{ needs.discover.outputs.dt_prefix }} and is rebuilt automatically whenever a model definition changes.
+            Version: `${{ needs.discover.outputs.dt_version }}` (targets darktable ${{ needs.discover.outputs.dt_prefix }})
+
+            This is a nightly build of darktable AI models, tracking the `master` branch of `darktable-ai`. It is rebuilt automatically whenever a model definition changes.
 
             You can use these if you want to try new or updated models without waiting for an official release. New checkpoints, format changes and packaging tweaks all land here first. The trade-off is the usual one – things move faster, things break more often, and behaviour can change between runs. **Use with caution.**
 
