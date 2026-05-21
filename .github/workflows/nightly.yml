@@ -38,7 +38,7 @@ jobs:
           # release-* tag for the nightly version label below
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -88,7 +88,7 @@ jobs:
         with:
           submodules: true
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -128,7 +128,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -144,24 +144,27 @@ jobs:
         with:
           path: artifacts
 
-      # delete nightly-* releases for OTHER versions (cross-version
-      # cleanup when master moves from 5.5.x dev to 5.7.x dev)
-      - name: Remove stale nightly releases
+      # delete every existing nightly-* release (including the one for
+      # the current version) so the next publish creates a fresh release
+      # object with a new created_at — that's what bumps it back to the
+      # top of /releases. updating in place would keep the old timestamp
+      - name: Remove existing nightly releases
         env:
           GH_TOKEN: ${{ github.token }}
-          NIGHTLY_TAG: nightly-${{ needs.discover.outputs.dt_prefix }}
         run: |
           for old in $(gh release list --json tagName \
                          -q '.[].tagName' | grep '^nightly-' || true); do
-            if [ "$old" != "$NIGHTLY_TAG" ]; then
-              gh release delete "$old" --yes --cleanup-tag
-            fi
+            gh release delete "$old" --yes --cleanup-tag
           done
 
-      # force-move the current nightly-X.Y.Z tag to HEAD so the release
-      # page's commit / date reflects when this build ran. matches DT's
-      # nightly workflow; release is updated in place (allowUpdates) so
-      # the URL stays stable across runs within the same dev cycle
+      # recreate the nightly-X.Y.Z tag at HEAD. release was just deleted
+      # above, so the next publish step will create a brand-new release
+      - name: Create nightly tag
+        env:
+          NIGHTLY_TAG: nightly-${{ needs.discover.outputs.dt_prefix }}
+        run: |
+          git tag "$NIGHTLY_TAG"
+          git push origin "$NIGHTLY_TAG"
       - name: Force move nightly tag
         env:
           NIGHTLY_TAG: nightly-${{ needs.discover.outputs.dt_prefix }}
